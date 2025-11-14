@@ -892,7 +892,7 @@ class nusoap_base
             $sec = time();
             $usec = 0;
         }
-        $dtx = new DateTime("@$sec"); 
+        $dtx = new DateTime("@$sec");
 	return
           date_format($dtx, 'Y-m-d H:i:s') . '.' . sprintf('%06d', $usec);
     }
@@ -1098,7 +1098,7 @@ class nusoap_fault extends nusoap_base
         foreach ($this->namespaces as $k => $v) {
             $ns_string .= "\n  xmlns:$k=\"$v\"";
         }
-  
+
       return '<?xml version="1.0" encoding="' . $this->soap_defencoding . '"?>' .
        '<SOAP-ENV:Envelope SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"' . $ns_string . ">\n" .
        '<SOAP-ENV:Body>' .
@@ -1767,7 +1767,7 @@ class nusoap_xmlschema extends nusoap_base
         foreach (array_diff($this->usedNamespaces, $this->enclosingNamespaces) as $nsp => $ns) {
             $el .= " xmlns:$nsp=\"$ns\"";
         }
-  
+
       return $el . ">\n" . $xml . "</$schemaPrefix:schema>\n";
     }
 
@@ -2139,7 +2139,7 @@ class soapval extends nusoap_base
      * @access private
      */
     var $attributes;
-    
+
     /** @var false|resource */
     var $fp;
 
@@ -2238,7 +2238,7 @@ class soap_transport_http extends nusoap_base
     // certpassword: SSL certificate password
     // verifypeer: default is 1
     // verifyhost: default is 1
-    
+
     /** @var false|resource */
     var $fp;
     var $errno;
@@ -2620,7 +2620,7 @@ class soap_transport_http extends nusoap_base
     function send($data, $timeout = 0, $response_timeout = 30, $cookies = null)
     {
         $this->debug('entered send() with data of length: ' . strlen($data));
-    
+
         $respdata = "";
         $this->tryagain = true;
         $tries = 0;
@@ -2710,7 +2710,7 @@ class soap_transport_http extends nusoap_base
                 //                            ) <">
                 // if qop is missing,
                 // request-digest  = <"> < KD ( H(A1), unq(nonce-value) ":" H(A2) ) > <">
-    
+
                 $nonce = $digestRequest['nonce'];
                 $cnonce = $nonce;
                 if ($digestRequest['qop'] != '') {
@@ -3462,7 +3462,7 @@ class soap_transport_http extends nusoap_base
         if ($sep_pos) {
             $name = substr($value_str, 0, $sep_pos);
             $value = substr($value_str, $sep_pos + 1);
-  
+
           return array('name' => $name,
                      'value' => $value,
                      'domain' => $domain,
@@ -3721,7 +3721,7 @@ class nusoap_server extends nusoap_base
      * @access public
      */
     var $debug_flag = false;
-    
+
     /** @var array */
     var $opData;
 
@@ -4224,7 +4224,7 @@ class nusoap_server extends nusoap_base
     {
         $this->debug('Entering serialize_return methodname: ' . $this->methodname . ' methodURI: ' . $this->methodURI);
         // if fault
-        if (isset($this->methodreturn) && is_object($this->methodreturn) && 
+        if (isset($this->methodreturn) && is_object($this->methodreturn) &&
         ((get_class($this->methodreturn) == 'soap_fault') || (get_class($this->methodreturn) == 'nusoap_fault'))) {
             $this->debug('got a fault object from method');
             $this->fault = $this->methodreturn;
@@ -4462,7 +4462,7 @@ class nusoap_server extends nusoap_base
             $this->methodURI = $parser->root_struct_namespace;
             $this->methodname = $parser->root_struct_name;
             $this->debug('methodname: ' . $this->methodname . ' methodURI: ' . $this->methodURI);
-            
+
             // get/set custom response tag name
             $outputMessage = $this->wsdl->getOperationData($this->methodname)['output']['message'];
             $this->responseTagName = $outputMessage;
@@ -4779,7 +4779,7 @@ class wsdl extends nusoap_base
     var $password = '';                // Password for HTTP authentication
     var $authtype = '';                // Type of HTTP authentication
     var $certRequest = array();        // Certificate for HTTP SSL authentication
-    
+
     /** @var mixed */
     var $currentPortOperation;
     /** @var string */
@@ -6841,9 +6841,9 @@ class nusoap_parser extends nusoap_base
                 $substrXml = $xml;
                 foreach($this->attachments as $key => $attachment) {
                     $startPos = max(
-                        stripos($substrXml, $attachment['boundaryStr']), 
-                        (array_key_exists('Content-Type', $attachment) ? stripos($substrXml, $attachment['Content-Type']) : 0), 
-                        (array_key_exists('Content-Id', $attachment) ? stripos($substrXml, $attachment['Content-Id']) : 0), 
+                        stripos($substrXml, $attachment['boundaryStr']),
+                        (array_key_exists('Content-Type', $attachment) ? stripos($substrXml, $attachment['Content-Type']) : 0),
+                        (array_key_exists('Content-Id', $attachment) ? stripos($substrXml, $attachment['Content-Id']) : 0),
                         (array_key_exists('Content-Transfer-Encoding', $attachment) ? stripos($substrXml, $attachment['Content-Transfer-Encoding']) : 0)
                     );
                     $substrXml = substr($substrXml, $startPos);
@@ -6871,7 +6871,7 @@ class nusoap_parser extends nusoap_base
                     xml_set_object($this->parser, $this);
                     xml_set_element_handler($this->parser, 'start_element', 'end_element');
                     xml_set_character_data_handler($this->parser, 'character_data');
-                    
+
                     if(!empty($attachment['content'])) {
                         $content = $attachment['content'];
                         foreach(preg_split("/((\r?\n)|(\r\n?))/", $content) as $line){
@@ -7428,7 +7428,7 @@ class nusoap_parser extends nusoap_base
             $ret = $this->message[$pos]['cdata'];
             $this->debug("in buildVal, return: $ret");
         }
-    
+
         return $ret;
     }
 }
@@ -7524,7 +7524,7 @@ class nusoap_client extends nusoap_base
      * @access   public
      */
     var $faultdetail;
-    
+
     /** @var wsdl|null */
     var $wsdl;
     /** @var mixed */
@@ -8230,7 +8230,7 @@ class nusoap_client extends nusoap_base
         if ($this->endpointType != 'wsdl') {
             $evalStr = 'A proxy can only be created for a WSDL client';
             $this->setError($evalStr);
-  
+
           return "echo \"$evalStr\";";
         }
         if (is_null($this->wsdl)) {
@@ -8269,7 +8269,7 @@ class nusoap_client extends nusoap_base
                 unset($paramCommentStr);
             }
         }
-  
+
       return 'class nusoap_proxy_' . $r . ' extends nusoap_client {
 ' . $evalStr . '
 }';

@@ -17,6 +17,39 @@ require_once __SITE_ROOT__.'/classes/RemoteFileHandler.php';
 require_once __SITE_ROOT__.'/classes/RequiredSoftwareHandler.php';
 
 /* ------------------------------------------
+ * UTILITY FUNCTIONS FOR SECURITY (NEW)
+ * ------------------------------------------ */
+/**
+ * Перевіряє, чи є URL локальним (внутрішнім) для сайту.
+ * Запобігає Open Redirect.
+ */
+function isLocalRedirect($url) {
+    // Якщо URL починається з '/' (абсолютний шлях) або '#' (фрагмент), він локальний.
+    if (strpos($url, '/') === 0 || strpos($url, '#') === 0) {
+        return true;
+    }
+
+    $currentHost = $_SERVER['HTTP_HOST'];
+    $urlParts = parse_url($url);
+
+    // Якщо хост порожній, це відносний шлях, вважаємо його локальним.
+    if (empty($urlParts['host'])) {
+        return true;
+    }
+
+    // Перевіряємо, чи хост співпадає з поточним хостом.
+    if (
+        $urlParts['host'] === $currentHost ||
+        $urlParts['host'] === 'www.' . $currentHost
+    ) {
+        return true;
+    }
+
+    // У всіх інших випадках (зовнішній хост) - це не локальне перенаправлення.
+    return false;
+}
+
+/* ------------------------------------------
  * INITIALIZE SESSION
  * ------------------------------------------ */
 if (session_status() == PHP_SESSION_NONE){
@@ -39,7 +72,9 @@ switch ($_SESSION["security-level"]){
     case "1":
         if ($_SESSION["EnforceSSL"] == "True"){
             if(!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS']!="on"){
-                $lSecureRedirect = "https://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+                // ВИПРАВЛЕННЯ: Очистка Host Header для запобігання Host Header Injection
+                $lHost = filter_var($_SERVER['HTTP_HOST'], FILTER_SANITIZE_URL);
+                $lSecureRedirect = "https://".$lHost.$_SERVER['REQUEST_URI'];
                 header("Location: $lSecureRedirect");
                 exit();
             }

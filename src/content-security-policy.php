@@ -42,13 +42,38 @@ try {
 
     if ($lFormSubmitted){
 
-        $lProtectAgainstMethodTampering?$lMessage = $_POST["message"]:$lMessage = $_REQUEST["message"];
+        /* Получаємо вхід безпечніше, використовуючи filter_input.
+           Якщо захист від Method Tampering увімкнений — беремо тільки POST.
+           Інакше — емулюємо стару поведінку: спочатку POST, якщо його немає — GET. */
+        if ($lProtectAgainstMethodTampering) {
+            $lMessage = filter_input(INPUT_POST, 'message', FILTER_UNSAFE_RAW);
+        } else {
+            $lMessage = filter_input(INPUT_POST, 'message', FILTER_UNSAFE_RAW);
+            if ($lMessage === null) {
+                $lMessage = filter_input(INPUT_GET, 'message', FILTER_UNSAFE_RAW);
+            }
+        }
+
+        if ($lMessage === null) {
+            $lMessage = '';
+        }
+
+        // Видаляємо null-байти та контрольні символи, обрізаємо до 100 символів
+        $lMessage = str_replace("\0", '', $lMessage);
+        $lMessage = preg_replace('/[\x00-\x1F\x7F]/u', '', $lMessage);
+        if (mb_strlen($lMessage, 'UTF-8') > 100) {
+            $lMessage = mb_substr($lMessage, 0, 100, 'UTF-8');
+        }
 
         if ($lProtectAgainstXSS) {
-            /* Protect against XSS by output encoding */
+            /* Якщо є ESAPI-Encoder — використовуємо його */
             $lMessageText = $Encoder->encodeForHTML($lMessage);
         }else{
-            $lMessageText = $lMessage; 		//allow XSS by not encoding output
+            /* Раніше тут залишали сирий текст (вразливість).
+               Щоб мінімально змінити поведінку, все ще зберігаємо
+               $lMessageText як сирий, але при виводі додатково
+               застосовуємо htmlspecialchars() (див. нижче). */
+            $lMessageText = $lMessage; 		// allow XSS in internal variable, but escape on output
         }//end if
 
     }// end if $lFormSubmitted
@@ -75,34 +100,34 @@ try {
 </a>
 
 <form action="index.php?page=content-security-policy.php"
-	  method="post"
-	  enctype="application/x-www-form-urlencoded"
-	  id="idCSPForm">
-	<table>
-		<tr><td></td></tr>
-		<tr>
-			<td colspan="2" class="form-header">Abandon Hope All Ye Who Enter XSS Here</td>
-		</tr>
-		<tr><td></td></tr>
-		<tr>
-			<td class="label">Message</td>
-			<td>
-				<input 	type="text" id="idMessageInput" name="message" size="20" autofocus="autofocus"
-						<?php
-							if ($lEnableHTMLControls) {
+      method="post"
+      enctype="application/x-www-form-urlencoded"
+      id="idCSPForm">
+    <table>
+        <tr><td></td></tr>
+        <tr>
+            <td colspan="2" class="form-header">Abandon Hope All Ye Who Enter XSS Here</td>
+        </tr>
+        <tr><td></td></tr>
+        <tr>
+            <td class="label">Message</td>
+            <td>
+                <input    type="text" id="idMessageInput" name="message" size="20" autofocus="autofocus"
+                        <?php
+                            if ($lEnableHTMLControls) {
                                 echo 'minlength="1" maxlength="20" required="required"';
-							}// end if
-						?>
-				/>
-			</td>
-		</tr>
-		<tr><td></td></tr>
-		<tr>
-			<td colspan="2" style="text-align:center;">
-				<input name="content-security-policy-php-submit-button" class="button" type="submit" value="Submit" />
-			</td>
-		</tr>
-	</table>
+                            }// end if
+                        ?>
+                />
+            </td>
+        </tr>
+        <tr><td></td></tr>
+        <tr>
+            <td colspan="2" style="text-align:center;">
+                <input name="content-security-policy-php-submit-button" class="button" type="submit" value="Submit" />
+            </td>
+        </tr>
+    </table>
 </form>
 
 <?php
@@ -110,19 +135,33 @@ try {
 if ($lFormSubmitted){
     try{
         echo '<div>&nbsp;</div>';
-        echo '<div class="report-header">Results for '.$lMessageText.'</div>';
+
+        // При виводі заголовка — завжди екранізуємо для запобігання XSS
+        echo '<div class="report-header">Results for '.htmlspecialchars($lMessageText, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</div>';
 
         if ($lProtectAgainstCommandInjection) {
-            echo '<pre class="output">'.$lMessageText.'</pre>';
+            // Якщо захист увімкнено — просто виводимо екранований текст (не викликаємо shell_exec)
+            echo '<pre class="output">'.htmlspecialchars($lMessageText, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</pre>';
             $LogHandler->writeToLog("Executed PHP command: echo " . $lMessageText);
         }else{
-            echo '<pre class="output">'.shell_exec("echo -n " . $lMessage).'</pre>';
+            // Якщо захист вимкнено — раніше викликали shell_exec без захисту (вразливість).
+            // Мінімальна безпечна правка: екранувати аргумент для shell через escapeshellarg()
+            // і екранувати вивід перед відправкою в HTML.
+            $escapedArg = escapeshellarg($lMessage);
+            $cmdOutput = shell_exec("echo -n " . $escapedArg);
+
+            if ($cmdOutput === null) {
+                // shell_exec може бути вимкнений або сталася помилка — коректно обробляємо
+                $cmdOutput = '';
+            }
+
+            echo '<pre class="output">'.htmlspecialchars($cmdOutput, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</pre>';
             $LogHandler->writeToLog("Executed operating system command: echo " . $lMessageText);
         }//end if
 
-	}catch(Exception $e){
-		echo $CustomErrorHandler->FormatError($e, "Input: " . $lMessage);
-	}// end try
+    }catch(Exception $e){
+        echo $CustomErrorHandler->FormatError($e, "Input: " . $lMessage);
+    }// end try
 
 }// end if
 ?>
@@ -149,11 +188,11 @@ if ($lFormSubmitted){
             function(event){
                 <?php
                     if($lEnableJavaScriptValidation){
-            	         echo "if(!onSubmitOfForm(this)){event.preventDefault()}";
+                         echo "if(!onSubmitOfForm(this)){event.preventDefault()}";
                     }else{
                          echo "return true;";
                     }
-            	?>
-    		});
-	});
+                ?>
+            });
+    });
 </script>

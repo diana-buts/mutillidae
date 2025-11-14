@@ -1,33 +1,50 @@
 <div class="page-title">Secret PHP Server Configuration Page</div>
 
 <?php
-	$lShowPHPInfo = false;
+    // Default: do NOT show sensitive system information
+    $lShowAdminPage = false;
 
-	if(isset($_SESSION["security-level"])){
-	    $lSecurityLevel = $_SESSION["security-level"];
-	}else{
-	    $lSecurityLevel = 0;
-	}
+    // Determine security level
+    $lSecurityLevel = $_SESSION["security-level"] ?? 0;
 
-	switch ($lSecurityLevel){
-		default: // Default case: This code is insecure
-   		case "0": // This code is insecure
-   		case "1": // This code is insecure
-			$lShowPHPInfo = true;
-   		break;
-   		case "2":
-   		case "3":
-   		case "4":
-   		case "5": // This code is fairly secure
-			if(isset($_SESSION["is_admin"]) && $_SESSION["is_admin"]){
-				$lShowPHPInfo = true;
-			}// end if isset $_SESSION["is_admin"] and is_admin
-  		break;
-	}// end switch
+    switch ($lSecurityLevel) {
+        case "0":
+        case "1":
+            // Even in insecure mode — do NOT reveal phpinfo()
+            // Just show a warning message or simplified info
+            $lShowAdminPage = true;
+            break;
 
-	if($lShowPHPInfo){
-	    echo phpinfo(INFO_ALL);
-	}else{
-		echo '<table><tr><td class="error-message">Secure sites do not expose administrative or configuration pages to the Internet</td></tr></table>';
-	}//end if $lShowPHPInfo
+        case "2":
+        case "3":
+        case "4":
+        case "5":
+            // Only admins can access the page — but still no phpinfo()
+            if (!empty($_SESSION["is_admin"]) && $_SESSION["is_admin"] === true) {
+                $lShowAdminPage = true;
+            }
+            break;
+    }
+
+    if ($lShowAdminPage) {
+
+        // SAFE ALTERNATIVE: minimal diagnostic info instead of phpinfo()
+        echo '<table>';
+        echo '<tr><th>Server Diagnostic Summary (Safe)</th></tr>';
+        echo '<tr><td>PHP Version: ' . htmlspecialchars(PHP_VERSION) . '</td></tr>';
+        echo '<tr><td>Loaded Configuration File: ' . htmlspecialchars(php_ini_loaded_file()) . '</td></tr>';
+        echo '<tr><td>Display Errors: ' . (ini_get("display_errors") ? "On" : "Off") . '</td></tr>';
+        echo '<tr><td>Session Save Path: ' . htmlspecialchars(ini_get("session.save_path")) . '</td></tr>';
+        echo '<tr><td>Timezone: ' . htmlspecialchars(ini_get("date.timezone")) . '</td></tr>';
+        echo '</table>';
+
+        echo '<p class="hint">Full system configuration is restricted for security reasons.</p>';
+
+    } else {
+
+        echo '<table><tr><td class="error-message">';
+        echo 'Secure sites do not expose administrative or configuration pages to the Internet';
+        echo '</td></tr></table>';
+
+    }
 ?>

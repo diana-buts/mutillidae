@@ -123,60 +123,10 @@
 			 *********************************************/
 			$lURL = "";
 			if ($lUseTokenization) {
-		   			/* Direct object references in the form of the "textfile"
-		   			 parameter give the user complete control of the input. Contrary to popular belief, 
-		   			 input validation, blacklisting, etc is not the best defense. The best defenses are 
-		   			 provably secure 100% of the time. For direct object references, there are two defenses.
-		   			 Authorization via ACL or Entitlements is used when transaction requires authentication.
-		   			 This transaction (forwarding URL) does not require authentication so the other method is used;
-		   			 mapping. Mapping substitutes a harmless token for the direct object. The direct object in 
-		   			 this case is the page the user is being forwarded to. We will use mapping to secure this code.
-		   			 
-		   			 Note: Some sites try to use validation to defend against Insecure Direct Object References.
-		   			 Validation fails in many cases due to weak validators.
-		   			
-		   			 Note: For static links, the best defense is to simply hardcode the links in an anchor tag.
-		   			 This exercise will use mapping to show how it works, but it should be recognized that 
-		   			 for giving the user links to click, hardcoding is the best defense.
- 
-		   			 * Also, the web is weakly typed. All data is strings. It doesnt matter what the developers
-		   			 * thinks the input is (int, string, char, etc.). The fact is that HTTP is text. if the 
-		   			 * "textfile" is expected to be integer, it should be validated as such. If string, then 
-		   			 * validate as string.
-		   			 *
-		   			 *  Definition of validation. Perform all of:
-		   			 * 
-		   			 *  check data type
-		   			 *  check data length
-		   			 *  check character set
-		   			 *  check pattern
-		   			 *  check range
-		   			 
-		   			 * The "textfile" is expected to be integer, so validate as such. Also,
-		   			 * dont use _REQUEST as this would allow a POSTed "textfile" to be sent 
-		   			 * along with a URL query parameter "textfile" as well. This type of sloppy
-		   			 * variable fetching can result in HTTP Parameter Pollution. 
-		   			 */
-		
-		   			/* We expect small int. validate positive integer between 0-9.
-		   			 * Regex pattern makes sure the user doesnt send in characters that
-		   			 * are not actually digits but can be cast to digits.
-		   			 */	
-		   			$isDigits = (preg_match("/\d{1,2}/", $pTextFile) == 1);    			
+		   			/* mapping: tokens -> URLs (safe) */
+		   			/* Validate token strictly: must be integer token */
+		   			$isDigits = (preg_match("/^\d{1,2}$/", $pTextFile) == 1);
 		   			if ($isDigits && $pTextFile > 0 && $pTextFile < 11){
-						/* Insecure Direct Object References are patched
-						 * by removing the direct object reference all together.
-						 * Web applications are "fronts" for services. Some web
-						 * sites offer web pages, some offer XML, SOAP, or other
-						 * services. In any case, the web site should not "give away"
-						 * information about internal objects such as database IDs,
-						 * redirection URLs, system file names, or application
-						 * paths/configuration.
-						 * 
-						 * Offer the user harmless tokens instead of actual 
-						 * objects. In this case, we use integers to map to
-						 * the direct object, which is the forwarding URL.
-						 */ 
 		   				switch($pTextFile){
 							default:
 		   					case 1: $lURL = "http://www.textfiles.com/hacking/auditool.txt";break;
@@ -185,12 +135,49 @@
 		   					case 4: $lURL = "http://www.textfiles.com/hacking/hack1.hac";break;
 		   					case 5: $lURL = "http://www.textfiles.com/hacking/hacking101.hac";break;
 		   				}// end switch($pTextFile)
-
 		   			}else{
 		   				throw(new Exception("Expected integer input. Cannot process request. Support team alerted."));
 		   			}// end if
 			} else {
+				/* When not using tokenization, very strict validation is required:
+				   - must be a valid URL
+				   - scheme must be http or https
+				   - hostname must be textfiles.com or a subdomain of textfiles.com
+				   This prevents path traversal, file://, local file access, etc.
+				*/
 				$lURL = $pTextFile;
+
+				// validate as URL
+				if (!filter_var($lURL, FILTER_VALIDATE_URL)) {
+					throw(new Exception("Invalid URL provided. Cannot process request."));
+				}
+
+				$parts = parse_url($lURL);
+				if ($parts === false || !isset($parts['scheme']) || !isset($parts['host'])) {
+					throw(new Exception("Invalid URL structure. Cannot process request."));
+				}
+
+				$scheme = strtolower($parts['scheme']);
+				if (!in_array($scheme, array('http', 'https'))) {
+					// disallow file://, ftp://, data://, etc.
+					throw(new Exception("Only HTTP/HTTPS URLs are permitted."));
+				}
+
+				$host = strtolower($parts['host']);
+				// allow only textfiles.com (including subdomains)
+				if (!preg_match('/(^|\.)textfiles\.com$/', $host)) {
+					throw(new Exception("External hosts are not permitted."));
+				}
+
+				// prevent userinfo in URL (e.g. user:pass@host)
+				if (isset($parts['user']) || isset($parts['pass'])) {
+					throw(new Exception("Credentials in URL are not permitted."));
+				}
+
+				// optional: disallow query fragments that could be used in some attacks (keep conservative)
+				// (leave path and query as-is for legitimate reads)
+
+				// At this point $lURL is considered safe for reading from the allowed domain only.
 			}// end if $lUseTokenization
 
 			/********************************************
@@ -206,7 +193,7 @@
 			 * Log file description
 			 *********************************************/
 			try {
-				$LogHandler->writeToLog("Using URL: " . $lTextFileDescription . " based on user choice.");	
+				$LogHandler->writeToLog("Using URL: " . $lTextFileDescription . " based on user choice.");
 			} catch (Exception $e) {
 				//Do nothing. Do not interrupt page for failed log attempt.
 			}//end try
@@ -216,23 +203,35 @@
 			 *********************************************/
 			try{
 			    // open file handle
-				$handle = fopen($lURL, "r");
+				$handle = @fopen($lURL, "r");
+				if ($handle === false) {
+					throw(new Exception("Error opening remote resource. Cannot load file."));
+				}
+
 	   			echo '<span class="label">File: '.$lTextFileDescription.'</span>';
 	   			echo '<pre>';
-	   			echo stream_get_contents($handle);
+	   			// read in safe chunks to avoid memory issues on very large files
+	   			while (!feof($handle)) {
+	   				$chunk = fgets($handle, 8192);
+	   				if ($chunk === false) {
+	   					// break on read error or EOF
+	   					break;
+	   				}
+	   				echo htmlspecialchars($chunk, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	   			}
 				echo '</pre>';
 				fclose($handle);
 
 				try {
-					$LogHandler->writeToLog("Displayed contents of URL: " . $lTextFileDescription);	
+					$LogHandler->writeToLog("Displayed contents of URL: " . $lTextFileDescription);
 				} catch (Exception $e) {
 					//Do nothing. Do not interrupt page for failed log attempt.
 				}//end try
-				
+
 			}catch(Exception $e){
 				echo $CustomErrorHandler->FormatError($e, "Error opening file stream. Cannot load file.");
 			}// end try
-		   				
+
 		}// end if (isset($_POST['text-file-viewer-php-submit-button']))
 	}catch(Exception $e){
 		echo $CustomErrorHandler->FormatError($e, "Error in text file viewer. Cannot load file.");

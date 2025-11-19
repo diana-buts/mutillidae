@@ -1,53 +1,54 @@
 <?php
-	/* Known Vulnerabilities
-	 * SQL Injection, (Fix: Use Schematized Stored Procedures)
-	 * Cross Site Scripting, (Fix: Encode all output)
-	 * Cross Site Request Forgery, (Fix: Tokenize transactions)
-	 * Insecure Direct Object Reference, (Fix: Tokenize Object References)
-	 * Denial of Service, (Fix: Truncate Log Queries)
-	 * Loading of Local Files, (Fix: Tokenize Object Reference - Filename references in this case)
-	 * Improper Error Handling, (Fix: Employ custom error handler)
-	 * SQL Exception, (Fix: Employ custom error handler)
-	 * HTTP Parameter Pollution (Fix: Scope request variables)
-	 * Method Tampering
-	 */
-	try {
-		switch ($_SESSION["security-level"]){
-			default:
-   			case "0": // This code is insecure
-				$lEnableHTMLControls = false;
-   				$lUseTokenization = false;
-				$lEncodeOutput = false;
-				$lProtectAgainstMethodTampering = false;
-			break;
+    /* Known Vulnerabilities
+     * SQL Injection, (Fix: Use Schematized Stored Procedures)
+     * Cross Site Scripting, (Fix: Encode all output)
+     * Cross Site Request Forgery, (Fix: Tokenize transactions)
+     * Insecure Direct Object Reference, (Fix: Tokenize Object References)
+     * Denial of Service, (Fix: Truncate Log Queries)
+     * Loading of Local Files, (Fix: Tokenize Object Reference - Filename references in this case)
+     * Improper Error Handling, (Fix: Employ custom error handler)
+     * SQL Exception, (Fix: Employ custom error handler)
+     * HTTP Parameter Pollution (Fix: Scope request variables)
+     * Method Tampering
+     */
 
-   			case "1": // This code is insecure
-				$lEnableHTMLControls = true;
-   				$lUseTokenization = false;
-				$lEncodeOutput = false;
-				$lProtectAgainstMethodTampering = false;
-			break;
+    try {
+        switch ($_SESSION["security-level"]){
+            default:
+            case "0": // insecure
+                $lEnableHTMLControls = false;
+                $lUseTokenization = false;
+                $lEncodeOutput = false;
+                $lProtectAgainstMethodTampering = false;
+            break;
 
-			case "2":
-			case "3":
-			case "4":
-	   		case "5": // This code is fairly secure
-				$lEnableHTMLControls = true;
-	   			$lUseTokenization = true;
-				$lEncodeOutput = true;
-				$lProtectAgainstMethodTampering = true;
-			break;
-	   	}// end switch ($_SESSION["security-level"])
+            case "1": // insecure
+                $lEnableHTMLControls = true;
+                $lUseTokenization = false;
+                $lEncodeOutput = false;
+                $lProtectAgainstMethodTampering = false;
+            break;
 
-	   	if ($lEnableHTMLControls) {
-	   		$lHTMLControlAttributes='required="required"';
-	   	}else{
-	   		$lHTMLControlAttributes="";
-	   	}// end if
+            case "2":
+            case "3":
+            case "4":
+            case "5": // secure
+                $lEnableHTMLControls = true;
+                $lUseTokenization = true;
+                $lEncodeOutput = true;
+                $lProtectAgainstMethodTampering = true;
+            break;
+        }
 
-	}catch(Exception $e){
-		echo $CustomErrorHandler->FormatError($e, "Error in text file viewer. Cannot load file.");
-	}// end try
+        if ($lEnableHTMLControls) {
+            $lHTMLControlAttributes='required="required"';
+        }else{
+            $lHTMLControlAttributes="";
+        }
+
+    }catch(Exception $e){
+        echo $CustomErrorHandler->FormatError($e, "Error in text file viewer. Cannot load file.");
+    }
 ?>
 
 <div class="page-title">Hacker Files of Old</div>
@@ -55,185 +56,154 @@
 <?php include_once __SITE_ROOT__.'/includes/back-button.inc';?>
 <?php include_once __SITE_ROOT__.'/includes/hints/hints-menu-wrapper.inc'; ?>
 
-<form 	action="index.php?page=text-file-viewer.php" 
-		method="post" 
-		enctype="application/x-www-form-urlencoded">
-		
-	<table>
-		<tr id="id-bad-cred-tr" style="display: none;">
-			<td colspan="2" class="error-message">
-				Validation Error: Bad Selection
-			</td>
-		</tr>
-		<tr><td></td></tr>
-		<tr>
-			<td colspan="2" class="form-header">Take the time to read some of these great old school hacker text files.<br />Just choose one form the list and submit.</td>
-		</tr>
-		<tr><td></td></tr>
-		<tr>
-			<td class="label">Text File Name</td>
-			<td>
-				<select size="1" name="textfile" id="id_textfile_select" autofocus="autofocus" <?php echo $lHTMLControlAttributes ?>>
-					<option value="<?php if ($lUseTokenization){echo 1;}else{echo 'http://www.textfiles.com/hacking/auditool.txt';}?>">Intrusion Detection in Computers by Victor H. Marshall (January 29, 1991)</option>
-					<option value="<?php if ($lUseTokenization){echo 2;}else{echo 'http://www.textfiles.com/hacking/atms';}?>">An Overview of ATMs and Information on the Encoding System</option>
-					<option value="<?php if ($lUseTokenization){echo 3;}else{echo 'http://www.textfiles.com/hacking/backdoor.txt';}?>">How to Hold Onto UNIX Root Once You Have It</option>
-					<option value="<?php if ($lUseTokenization){echo 4;}else{echo 'http://www.textfiles.com/hacking/hack1.hac';}?>">The Basics of Hacking, by the Knights of Shadow (Intro)</option>
-					<option value="<?php if ($lUseTokenization){echo 5;}else{echo 'http://www.textfiles.com/hacking/hacking101.hac';}?>">HACKING 101 - By Johnny Rotten - Course #1 - Hacking, Telenet, Life</option>
-				</select>
-			</td>
-		</tr>
-		<tr><td></td></tr>
-		<tr>
-			<td colspan="2" style="text-align:center;">
-				<input name="text-file-viewer-php-submit-button" class="button" type="submit" value="View File" />
-			</td>
-		</tr>
-		<tr><td></td></tr>
-		<tr>
-			<td class="label" colspan="2">For other great old school hacking texts, check out 
-			<a href="http://www.textfiles.com/" target="_blank">
-				http://www.textfiles.com/
-			</a>.</td></tr>
-			<tr>
-			<td>&nbsp;</td>
-		</tr>
-	</table>
+<form action="index.php?page=text-file-viewer.php"
+      method="post"
+      enctype="application/x-www-form-urlencoded">
+
+    <table>
+        <tr id="id-bad-cred-tr" style="display: none;">
+            <td colspan="2" class="error-message">
+                Validation Error: Bad Selection
+            </td>
+        </tr>
+        <tr><td></td></tr>
+        <tr>
+            <td colspan="2" class="form-header">
+                Take the time to read some of these great old school hacker text files.<br />
+                Just choose one from the list and submit.
+            </td>
+        </tr>
+        <tr><td></td></tr>
+        <tr>
+            <td class="label">Text File Name</td>
+            <td>
+                <select size="1" name="textfile" id="id_textfile_select" autofocus="autofocus" <?php echo $lHTMLControlAttributes ?>>
+
+                    <option value="<?php echo $lUseTokenization ? 1 : 'auditool.txt'; ?>">
+                        Intrusion Detection in Computers by Victor H. Marshall (1991)
+                    </option>
+                    <option value="<?php echo $lUseTokenization ? 2 : 'atms'; ?>">
+                        Overview of ATMs and Encoding System
+                    </option>
+                    <option value="<?php echo $lUseTokenization ? 3 : 'backdoor.txt'; ?>">
+                        How to Hold Onto UNIX Root
+                    </option>
+                    <option value="<?php echo $lUseTokenization ? 4 : 'hack1.hac'; ?>">
+                        The Basics of Hacking
+                    </option>
+                    <option value="<?php echo $lUseTokenization ? 5 : 'hacking101.hac'; ?>">
+                        HACKING 101 — Johnny Rotten
+                    </option>
+
+                </select>
+            </td>
+        </tr>
+        <tr><td></td></tr>
+        <tr>
+            <td colspan="2" style="text-align:center;">
+                <input name="text-file-viewer-php-submit-button" class="button" type="submit" value="View File" />
+            </td>
+        </tr>
+        <tr><td></td></tr>
+        <tr>
+            <td class="label" colspan="2">
+                For other great texts, check out
+                <a href="http://www.textfiles.com/" target="_blank">
+                    http://www.textfiles.com/
+                </a>.
+            </td>
+        </tr>
+        <tr><td>&nbsp;</td></tr>
+    </table>
 </form>
 
+
 <?php
-	try {
-		if (isset($_POST['text-file-viewer-php-submit-button'])){
+try {
+    if (isset($_POST['text-file-viewer-php-submit-button'])){
 
-			/********************************************
-			 * Protect against Method Tampering in security level 5
-			 *********************************************/
-			if ($lProtectAgainstMethodTampering){
-				$pTextFile=$_POST["textfile"];
-			}else{
-				/* insecure: $_REQUEST would take input from GET or POST. 
-				 * This can result in an HTTP Parameter Polution
-	   			 * attack. If a site uses POST, then grab input from _POST. Use _GET for gets. HPP can
-	   			 * occur more easily when input is ambiguous.
-	   			 */
-				$pTextFile = $_REQUEST['textfile'];
-			}//end if
+        // Protection from method tampering
+        if ($lProtectAgainstMethodTampering){
+            $pTextFile = $_POST["textfile"];
+        } else {
+            $pTextFile = $_REQUEST['textfile'];
+        }
 
-			/********************************************
-			 * Protect against IDOR in security level 5
-			 *********************************************/
-			$lURL = "";
-			if ($lUseTokenization) {
-		   			/* mapping: tokens -> URLs (safe) */
-		   			/* Validate token strictly: must be integer token */
-		   			$isDigits = (preg_match("/^\d{1,2}$/", $pTextFile) == 1);
-		   			if ($isDigits && $pTextFile > 0 && $pTextFile < 11){
-		   				switch($pTextFile){
-							default:
-		   					case 1: $lURL = "http://www.textfiles.com/hacking/auditool.txt";break;
-		   					case 2: $lURL = "http://www.textfiles.com/hacking/atms";break;
-		   					case 3: $lURL = "http://www.textfiles.com/hacking/backdoor.txt";break;
-		   					case 4: $lURL = "http://www.textfiles.com/hacking/hack1.hac";break;
-		   					case 5: $lURL = "http://www.textfiles.com/hacking/hacking101.hac";break;
-		   				}// end switch($pTextFile)
-		   			}else{
-		   				throw(new Exception("Expected integer input. Cannot process request. Support team alerted."));
-		   			}// end if
-			} else {
-				/* When not using tokenization, very strict validation is required:
-				   - must be a valid URL
-				   - scheme must be http or https
-				   - hostname must be textfiles.com or a subdomain of textfiles.com
-				   This prevents path traversal, file://, local file access, etc.
-				*/
-				$lURL = $pTextFile;
+        // White list of allowed files locally stored
+        // This removes ANY possibility of Path Traversal
+        $allowedFiles = array(
+            1 => "auditool.txt",
+            2 => "atms",
+            3 => "backdoor.txt",
+            4 => "hack1.hac",
+            5 => "hacking101.hac"
+        );
 
-				// validate as URL
-				if (!filter_var($lURL, FILTER_VALIDATE_URL)) {
-					throw(new Exception("Invalid URL provided. Cannot process request."));
-				}
+        $baseDirectory = __DIR__ . "/textfiles/";
 
-				$parts = parse_url($lURL);
-				if ($parts === false || !isset($parts['scheme']) || !isset($parts['host'])) {
-					throw(new Exception("Invalid URL structure. Cannot process request."));
-				}
+        if ($lUseTokenization){
+            // Token → file name
+            if (!preg_match("/^[0-9]+$/", $pTextFile) || !isset($allowedFiles[$pTextFile])) {
+                throw new Exception("Invalid input token. Access denied.");
+            }
 
-				$scheme = strtolower($parts['scheme']);
-				if (!in_array($scheme, array('http', 'https'))) {
-					// disallow file://, ftp://, data://, etc.
-					throw(new Exception("Only HTTP/HTTPS URLs are permitted."));
-				}
+            $lURL = $baseDirectory . $allowedFiles[$pTextFile];
 
-				$host = strtolower($parts['host']);
-				// allow only textfiles.com (including subdomains)
-				if (!preg_match('/(^|\.)textfiles\.com$/', $host)) {
-					throw(new Exception("External hosts are not permitted."));
-				}
+        } else {
+            // NON-tokenized request must ALSO pass strict whitelist
+            if (!in_array($pTextFile, $allowedFiles)) {
+                throw new Exception("Invalid filename. Access denied.");
+            }
 
-				// prevent userinfo in URL (e.g. user:pass@host)
-				if (isset($parts['user']) || isset($parts['pass'])) {
-					throw(new Exception("Credentials in URL are not permitted."));
-				}
+            $lURL = $baseDirectory . $pTextFile;
+        }
 
-				// optional: disallow query fragments that could be used in some attacks (keep conservative)
-				// (leave path and query as-is for legitimate reads)
+        // Ensure resolved path is INSIDE the directory (final anti-PathTraversal)
+        $real = realpath($lURL);
+        if ($real === false || strpos($real, realpath($baseDirectory)) !== 0){
+            throw new Exception("Access denied – invalid resolved path.");
+        }
 
-				// At this point $lURL is considered safe for reading from the allowed domain only.
-			}// end if $lUseTokenization
+        // Encode display name if needed
+        if ($lEncodeOutput){
+            $lTextFileDescription = $Encoder->encodeForHTML($lURL);
+        } else {
+            $lTextFileDescription = $lURL;
+        }
 
-			/********************************************
-			 * Protect against XSS in security level 5
-			 *********************************************/
-			if ($lEncodeOutput){
-				$lTextFileDescription = $Encoder->encodeForHTML($lURL);
-			} else {
-				$lTextFileDescription = $lURL;
-			}// end if $lEncodeOutput
+        // Log usage
+        try {
+            $LogHandler->writeToLog("Using file: " . $lTextFileDescription);
+        } catch (Exception $e) { }
 
-			/********************************************
-			 * Log file description
-			 *********************************************/
-			try {
-				$LogHandler->writeToLog("Using URL: " . $lTextFileDescription . " based on user choice.");
-			} catch (Exception $e) {
-				//Do nothing. Do not interrupt page for failed log attempt.
-			}//end try
+        // Open file securely
+        try{
+            $handle = @fopen($real, "r");
+            if ($handle === false) {
+                throw new Exception("Error opening file.");
+            }
 
-			/********************************************
-			 * Open file and display contents
-			 *********************************************/
-			try{
-			    // open file handle
-				$handle = @fopen($lURL, "r");
-				if ($handle === false) {
-					throw(new Exception("Error opening remote resource. Cannot load file."));
-				}
+            echo '<span class="label">File: '.$lTextFileDescription.'</span>';
+            echo '<pre>';
 
-	   			echo '<span class="label">File: '.$lTextFileDescription.'</span>';
-	   			echo '<pre>';
-	   			// read in safe chunks to avoid memory issues on very large files
-	   			while (!feof($handle)) {
-	   				$chunk = fgets($handle, 8192);
-	   				if ($chunk === false) {
-	   					// break on read error or EOF
-	   					break;
-	   				}
-	   				echo htmlspecialchars($chunk, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-	   			}
-				echo '</pre>';
-				fclose($handle);
+            while (!feof($handle)) {
+                $chunk = fgets($handle, 8192);
+                if ($chunk === false) break;
+                echo htmlspecialchars($chunk, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            }
+            echo '</pre>';
+            fclose($handle);
 
-				try {
-					$LogHandler->writeToLog("Displayed contents of URL: " . $lTextFileDescription);
-				} catch (Exception $e) {
-					//Do nothing. Do not interrupt page for failed log attempt.
-				}//end try
+            try {
+                $LogHandler->writeToLog("Displayed file: " . $lTextFileDescription);
+            } catch (Exception $e) { }
 
-			}catch(Exception $e){
-				echo $CustomErrorHandler->FormatError($e, "Error opening file stream. Cannot load file.");
-			}// end try
+        }catch(Exception $e){
+            echo $CustomErrorHandler->FormatError($e, "Error opening file stream.");
+        }
 
-		}// end if (isset($_POST['text-file-viewer-php-submit-button']))
-	}catch(Exception $e){
-		echo $CustomErrorHandler->FormatError($e, "Error in text file viewer. Cannot load file.");
-	}// end try
+    }
+}catch(Exception $e){
+    echo $CustomErrorHandler->FormatError($e, "Error in text file viewer.");
+}
 ?>

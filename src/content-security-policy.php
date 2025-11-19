@@ -144,19 +144,16 @@ if ($lFormSubmitted){
             echo '<pre class="output">'.htmlspecialchars($lMessageText, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</pre>';
             $LogHandler->writeToLog("Executed PHP command: echo " . $lMessageText);
         }else{
-            // Якщо захист вимкнено — раніше викликали shell_exec без захисту (вразливість).
-            // Мінімальна безпечна правка: екранувати аргумент для shell через escapeshellarg()
-            // і екранувати вивід перед відправкою в HTML.
-            $escapedArg = escapeshellarg($lMessage);
-            $cmdOutput = shell_exec("echo -n " . $escapedArg);
+            // ---- FIXED: removed shell_exec() to prevent command injection ----
+            // Раніше тут викликали shell_exec("echo -n " . $escapedArg), що дозволяло ін’єкцію команд.
+            // Тепер ми імітуємо вивід команди без звернення до оболонки — використовуємо PHP-рядок.
+            $cmdOutput = $lMessage; // без виконання команд оболонки
 
-            if ($cmdOutput === null) {
-                // shell_exec може бути вимкнений або сталася помилка — коректно обробляємо
-                $cmdOutput = '';
-            }
-
+            // Виводимо екрановано (щоб уникнути XSS)
             echo '<pre class="output">'.htmlspecialchars($cmdOutput, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</pre>';
-            $LogHandler->writeToLog("Executed operating system command: echo " . $lMessageText);
+
+            // Логування — записуємо вже екранований текст заголовка (тобто без сирого несанітованого введення)
+            $LogHandler->writeToLog("Simulated operating system command output: " . $lMessageText);
         }//end if
 
     }catch(Exception $e){

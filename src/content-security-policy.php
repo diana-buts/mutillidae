@@ -144,12 +144,8 @@ if ($lFormSubmitted){
             echo '<pre class="output">'.htmlspecialchars($lMessageText, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</pre>';
             $LogHandler->writeToLog("Executed PHP command: echo " . $lMessageText);
         }else{
-            // ---- FIXED: removed shell_exec() to prevent command injection ----
-            // Раніше тут викликали shell_exec("echo -n " . $escapedArg), що дозволяло ін’єкцію команд.
-            // Тепер ми імітуємо вивід команди без звернення до оболонки — використовуємо PHP-рядок.
-            $cmdOutput = $lMessage; // без виконання команд оболонки
+            $cmdOutput = $lMessage;
 
-            // Виводимо екрановано (щоб уникнути XSS)
             echo '<pre class="output">'.htmlspecialchars($cmdOutput, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</pre>';
 
             // Логування — записуємо вже екранований текст заголовка (тобто без сирого несанітованого введення)

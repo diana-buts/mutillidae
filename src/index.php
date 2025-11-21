@@ -19,25 +19,18 @@ require_once __SITE_ROOT__.'/classes/RequiredSoftwareHandler.php';
 /* ------------------------------------------
  * UTILITY FUNCTIONS FOR SECURITY (NEW)
  * ------------------------------------------ */
-/**
- * Перевіряє, чи є URL локальним (внутрішнім) для сайту.
- * Запобігає Open Redirect.
- */
 function isLocalRedirect($url) {
-    // Якщо URL починається з '/' (абсолютний шлях) або '#' (фрагмент), він локальний.
     if (strpos($url, '/') === 0 || strpos($url, '#') === 0) {
         return true;
     }
 
-    $currentHost = $_SERVER['HTTP_HOST'];
+    $currentHost = $_SERVER['SERVER_NAME']; // FIX: no HTTP_HOST
     $urlParts = parse_url($url);
 
-    // Якщо хост порожній, це відносний шлях, вважаємо його локальним.
     if (empty($urlParts['host'])) {
         return true;
     }
 
-    // Перевіряємо, чи хост співпадає з поточним хостом.
     if (
         $urlParts['host'] === $currentHost ||
         $urlParts['host'] === 'www.' . $currentHost
@@ -45,7 +38,6 @@ function isLocalRedirect($url) {
         return true;
     }
 
-    // У всіх інших випадках (зовнішній хост) - це не локальне перенаправлення.
     return false;
 }
 
@@ -61,7 +53,7 @@ if (!isset($_SESSION["security-level"])){
 }
 
 /* ----------------------------------------------------
- * ENFORCE SSL
+ * ENFORCE SSL — FIXED OPEN REDIRECT
  * ---------------------------------------------------- */
 if (!isset($_SESSION["EnforceSSL"])){
     $_SESSION["EnforceSSL"] = "False";
@@ -72,10 +64,21 @@ switch ($_SESSION["security-level"]){
     case "1":
         if ($_SESSION["EnforceSSL"] == "True"){
             if(!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS']!="on"){
-                // ВИПРАВЛЕННЯ: Очистка Host Header для запобігання Host Header Injection
-                $lHost = filter_var($_SERVER['HTTP_HOST'], FILTER_SANITIZE_URL);
-                $lSecureRedirect = "https://".$lHost.$_SERVER['REQUEST_URI'];
-                header("Location: $lSecureRedirect");
+
+                // FIX: Secure Redirect (Fortify finding)
+                $host = $_SERVER['SERVER_NAME'];  // safe, cannot be spoofed
+                $uri  = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // allow only path
+
+                // Ensure redirect is local
+                $safeRedirect = "https://" . $host . $uri;
+
+                if (isLocalRedirect($safeRedirect)) {
+                    header("Location: $safeRedirect", true, 302);
+                    exit();
+                }
+
+                // fallback to safe default
+                header("Location: https://" . $host . "/");
                 exit();
             }
         }
@@ -257,7 +260,6 @@ switch ($_SESSION["security-level"]){
 /* ------------------------------------------
  * Security Headers (Modern Browsers)
  * ------------------------------------------ */
-// ... (зберігаємо всі існуючі заголовки без змін)
 
 /* ------------------------------------------
  * Set the HTTP content-type of this page
